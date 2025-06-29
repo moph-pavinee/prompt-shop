@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.7/dist/loadingoverlay.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai');
+        * {
+            box-sizing: border-box;
+            font-family: 'Noto Sans Thai', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-800 text-white font-sans">
+    <nav class="bg-green-500 p-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <img src="xxx" style="width:50px" alt="Prompt+ shop logo" class="w-12 h-12 rounded-full">
+            <h1 class="text-2xl font-bold">Prompt+ shop</h1>
+        </div>
+    </nav>
+
+    <div class="max-w-screen-lg mx-auto p-4">
+        <div class="flex space-x-2 mb-6">
+            <button class="bg-green-500 text-white py-2 px-4 rounded-full filter-button" data-filter="all">ทั้งหมด</button>
+            <button class="bg-gray-700 text-white py-2 px-4 rounded-full filter-button" data-filter="meal">อาหาร</button>
+            <button class="bg-gray-700 text-white py-2 px-4 rounded-full filter-button" data-filter="snack">ขนม</button>
+            <button class="bg-gray-700 text-white py-2 px-4 rounded-full filter-button" data-filter="drink">เครื่องดื่ม</button>
+            <button class="bg-gray-700 text-white py-2 px-4 rounded-full filter-button" data-filter="cloth">เสื้อผ้า</button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 mb-6" id="items-grid"></div>
+        <div class="bg-gray-700 p-4 rounded-xl mb-4">
+            <div class="flex justify-between items-center">
+                <p class="text-xl">Total Item (0)</p>
+           </div>
+            <div id="order-items" class="mt-4"></div>
+        </div>
+        <div class="flex justify-between items-center bg-gray-800 p-4 rounded-xl">
+            <p class="text-2xl">Total <span class="text-green-400 total-amount">$0</span></p>
+            <div class="flex items-center space-x-4">
+               <button class="bg-gray-600 text-white px-4 py-2 rounded-full reset">ล้าง</button>
+               <button class="bg-green-500 text-white px-4 py-2 rounded-full pay-now">ชำระเงิน</button>
+           </div>
+        </div>
+    </div>
+
+    <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg w-96 text-gray-800">
+            <h2 class="text-xl font-bold mb-4">Payment Details</h2>
+            <form id="payment-form" class="space-y-4">
+               <div class="items-center space-x-4 mb-4">
+                   <center><img id="user-image" src="" alt="User Image" class="w-36 h-36 rounded-full hidden"></center>
+               </div>
+               <div>
+                   <label for="name" class="block text-sm font-medium">Name</label>
+                   <input type="text" id="name" name="name" class="w-full p-2 border rounded" required>
+               </div>
+               <div>
+                   <label for="group" class="block text-sm font-medium">ชื่อกลุ่ม</label>
+                   <select id="group" name="group" class="w-full p-2 border rounded" required>
+                       <option value="">เลือกกลุ่ม</option>
+                       <option value="กลุ่ม พส.">กลุ่ม พส.</option>
+                       <option value="กลุ่ม ปป.">กลุ่ม ปป.</option>
+                       <option value="กลุ่ม มธ.">กลุ่ม มธ.</option>
+                       <option value="กลุ่ม บท.">กลุ่ม บท.</option>
+                       <option value="กลุ่ม บส.">กลุ่ม บส.</option>
+                       <option value="กลุ่ม สป.">กลุ่ม สป.</option>
+                   </select>
+               </div>
+               <div>
+                   <label for="address" class="block text-sm font-medium">สิ่งที่ต้องการให้นำมาขายเพิ่ม</label>
+                   <textarea id="address" name="address" class="w-full p-2 border rounded" rows="3" required></textarea>
+               </div>
+               <div>
+                   <label class="block text-sm font-medium">เลขบัญชีธนาคาร</label>
+                   <p>ชื่อธนาคาร: [ธนาคารกสิกรไทย]</p>
+                   <p>เลขบัญชี: [085-1-24228-7]</p>
+                   <p>ชื่อบัญชี: [ภาวิณี ธนกิจไพบูลย์]</p>
+               </div>
+               <div>
+                   <label for="slip" class="block text-sm font-medium">Upload Slip</label>
+                   <input type="file" id="slip" name="slip" class="w-full p-2 border rounded" required>
+               </div>
+               <div class="flex justify-end space-x-2">
+                   <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded cancel">Cancel</button>
+                   <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Submit</button>
+               </div>
+           </form>
+        </div>
+    </div>
+    <script>
+       document.addEventListener('DOMContentLoaded', () => {
+            const orderDetail = {
+                items: [],
+                totalAmount: 0,
+            };
+
+            const SERVER_URL = "https://script.google.com/macros/s/AKfycbxTlBMZZBKSJbckOh6w_O5iTTKUGZa1gkHTjH6t9NM6O7owN25b6PwN3_V8COXAJZt4/exec";
+            const Product_List = "https://opensheet.elk.sh/1RoCc3GyfZnpeW0-bpl12awX8nSTvb3l2hyFJC3YdUqw/Product"
+            const LIFF_ID = "2007159627-PM1RD83a";
+            const totalItemsElement = document.querySelector('.text-xl');
+            const totalAmountElement = document.querySelector('.total-amount');
+            const orderItemsContainer = document.getElementById('order-items');
+            const resetButton = document.querySelector('.reset');
+            const payNowButton = document.querySelector('.pay-now');
+            const paymentModal = document.getElementById('payment-modal');
+            const cancelButton = paymentModal.querySelector('.cancel');
+            const paymentForm = document.getElementById('payment-form');
+            const userNameInput = document.getElementById('name');
+            const userImage = document.getElementById('user-image');
+
+            async function fetchMenuItems() {
+                const url = Product_List;
+                try {
+                   const response = await fetch(url);
+                   const data = await response.json();
+                   renderMenuItems(data);
+                } catch (error) {
+                   console.error('Error fetching menu items:', error);
+                }
+            }
+
+            function renderMenuItems(items) {
+                const itemsGrid = document.getElementById('items-grid');
+                itemsGrid.innerHTML = '';
+
+                items.forEach(item => {
+                    // *** เพิ่มเงื่อนไขตรงนี้: ไม่แสดงสินค้าที่มี Stock เป็น 0 หรือติดลบ ***
+                    if (item.Stock > 0) {
+                       const itemCard = document.createElement('div');
+                       itemCard.className = 'bg-gray-700 p-4 rounded-xl text-center cursor-pointer item-card';
+                       itemCard.setAttribute('data-name', item['Item Name']);
+                       itemCard.setAttribute('data-price', item.Price);
+                       itemCard.setAttribute('data-category', item.Category.toLowerCase());
+                       itemCard.setAttribute('data-stock', item.Stock);
+                       itemCard.innerHTML = `
+                           <img src="${item['Image URL']}" alt="${item['Item Name']} Image" class="mx-auto mb-2">
+                           <p>${item['Item Name']}</p>
+                           <p>Stock: ${item.Stock}</p>
+                           <p class="text-green-400">${item.Price}฿</p>
+                       `;
+                       itemsGrid.appendChild(itemCard);
+
+                       itemCard.addEventListener('click', () => {
+                           addItemToOrder(item['Item Name'], parseInt(item.Price, 10), item['Image URL'], item.Stock);
+                       });
+                    }
+                });
+            }
+
+            function updateUI() {
+               totalItemsElement.textContent = `Total Item (${orderDetail.items.length})`;
+               totalAmountElement.textContent = `${orderDetail.totalAmount.toLocaleString()}฿`;
+            }
+
+            function addItemToOrder(name, price, imageUrl, stock) {
+                const existingItem = orderDetail.items.find(item => item.name === name);
+                if (existingItem) {
+                    //ตรวจสอบสต็อกก่อนเพิ่มจำนวน
+                    if (existingItem.quantity < stock) {
+                       existingItem.quantity += 1;
+                    } else {
+                       Swal.fire('สินค้าหมด', `สินค้า ${name}มีจำนวนจำกัด`, 'warning');
+                       return; // ไม่ต้องดำเนินการต่อถ้าสต็อกไม่พอ
+                    }
+                } else {
+                    if (stock > 0) { // ตรวจสอบสต็อกอีกครั้งก่อนเพิ่มสินค้าใหม่
+                       orderDetail.items.push({ name, price, quantity: 1, image: imageUrl, stock: stock });
+                    } else {
+                       Swal.fire('สินค้าหมด', `สินค้า ${name}ไม่มีในสต็อก`, 'warning');
+                       return;
+                    }
+                }
+               orderDetail.totalAmount += price;
+               renderOrderItems();
+               updateUI();
+            }
+
+            function renderOrderItems() {
+               orderItemsContainer.innerHTML = '';
+               orderDetail.items.forEach(item => {
+                   const formattedPrice = item.price.toLocaleString();
+                   const itemElement = document.createElement('div');
+                   itemElement.className = 'flex items-center justify-between mt-2';
+                   itemElement.innerHTML = `
+                       <div class="flex items-center">
+                           <img src="${item.image || 'https://placehold.co/50x50'}" alt="${item.name} Image" class="w-12 h-12 rounded mr-4">
+                           <div>
+                               <p>${item.name}</p>
+                                <p class="text-green-400">Price ${formattedPrice}฿</p>
+                           </div>
+                       </div>
+                       <div class="flex items-center">
+                           <button class="text-white bg-gray-600 px-2 rounded decrement">-</button>
+                           <span class="mx-2 quantity">${item.quantity}</span>
+                           <button class="text-white bg-gray-600 px-2 rounded increment">+</button>
+                           <button class="text-red-500 ml-4 remove"><i class="fas fa-trash"></i></button>
+                       </div>
+                    `;
+                   orderItemsContainer.appendChild(itemElement);
+
+                   itemElement.querySelector('.increment').addEventListener('click', () => {
+                       // ตรวจสอบสต็อกก่อนเพิ่มจำนวนในตะกร้า
+                       if (item.quantity < item.stock) {
+                           item.quantity += 1;
+                           orderDetail.totalAmount += item.price;
+                           updateUI();
+                           renderOrderItems();
+                       } else {
+                           Swal.fire('สินค้าหมด', `สินค้า ${item.name}มีจำนวนจำกัด`, 'warning');
+                       }
+                   });
+
+                   itemElement.querySelector('.decrement').addEventListener('click', () => {
+                       if (item.quantity > 1) {
+                           item.quantity -= 1;
+                           orderDetail.totalAmount -= item.price;
+                           updateUI();
+                           renderOrderItems();
+                       } else {
+                           // ถ้าลดจนเหลือ 0 ให้ลบสินค้าออกจากตะกร้าไปเลย
+                           orderDetail.items = orderDetail.items.filter(i => i !== item);
+                           orderDetail.totalAmount -= item.price; // ลบราคาสินค้าชิ้นเดียวออกจากยอดรวม
+                           updateUI();
+                           renderOrderItems();
+                       }
+                   });
+
+                   itemElement.querySelector('.remove').addEventListener('click', () => {
+                       orderDetail.items = orderDetail.items.filter(i => i !== item);
+                       orderDetail.totalAmount -= item.price * item.quantity;
+                       updateUI();
+                       renderOrderItems();
+                   });
+               });
+            }
+
+           document.querySelectorAll('.filter-button').forEach(button => {
+               button.addEventListener('click', () => {
+                   const filter = button.getAttribute('data-filter');
+                   document.querySelectorAll('.item-card').forEach(card => {
+                       const stock = parseInt(card.getAttribute('data-stock'), 10);
+                       const category = card.getAttribute('data-category');
+
+                       // แสดงสินค้าเฉพาะที่มีสต็อก > 0 และตรงตาม filter
+                       if (stock > 0 && (filter === 'all' || category === filter)) {
+                           card.classList.remove('hidden');
+                       } else {
+                           card.classList.add('hidden');
+                       }
+                   });
+                   document.querySelectorAll('.filter-button').forEach(btn =>
+                       btn.classList.remove('bg-green-500')
+                    );
+                   button.classList.add('bg-green-500');
+               });
+            });
+
+            resetButton.addEventListener('click', () => {
+               orderDetail.items = [];
+               orderDetail.totalAmount = 0;
+               renderOrderItems();
+               updateUI();
+            });
+
+            payNowButton.addEventListener('click', () => {
+               paymentModal.classList.remove('hidden');
+            });
+
+            cancelButton.addEventListener('click', () => {
+               paymentModal.classList.add('hidden');
+            });
+
+            paymentForm.addEventListener('submit', async (e) => {
+               e.preventDefault();
+               $.LoadingOverlay("show");
+                const name = document.getElementById('name').value;
+                const group = document.getElementById('group').value;
+                const address = document.getElementById('address').value;
+                const slip = document.getElementById('slip').files[0];
+                const base64Image = await getBase64(slip);
+                const orderDetails = orderDetail.items.map(item => ({
+                   name: item.name,
+                   price: item.price,
+                   quantity: item.quantity
+                }));
+                let lineUid = '';
+                try {
+                   const profile = await liff.getProfile();
+                   lineUid = profile.userId;
+                } catch (error) {
+                   console.error('Error fetching LINE profile:', error);
+                   alert('Error fetching LINE profile. Please try again.');
+                   $.LoadingOverlay("hide");
+                   return;
+                }
+               fetch(SERVER_URL, {
+                       method: 'POST',
+                       mode: 'no-cors',
+                       headers: {
+                           'Content-Type': 'application/json'
+                       },
+                       body: JSON.stringify({
+                           lineUid,
+                           name,
+                           group,
+                           address,
+                           image: base64Image,
+                           orderDetails
+                       })
+                    })
+                   .then(() => {
+                       Swal.fire('Success', 'Payment submitted successfully!', 'success');
+                       paymentModal.classList.add('hidden');
+                       resetButton.click();
+                       $.LoadingOverlay("hide");
+                   })
+                   .catch(error => {
+                       Swal.fire('Error', error.toString(), 'error');
+                       $.LoadingOverlay("hide");
+                   });
+            });
+
+            function getBase64(file) {
+                return new Promise((resolve, reject) => {
+                   const reader = new FileReader();
+                   reader.onload = () => resolve(reader.result);
+                   reader.onerror = error => reject(error);
+                   reader.readAsDataURL(file);
+                });
+            }
+
+            async function initializeLiff() {
+                try {
+                   await liff.init({ liffId: LIFF_ID });
+                    if (liff.isLoggedIn()) {
+                       const profile = await liff.getProfile();
+                       userNameInput.value = profile.displayName;
+                       userImage.src = profile.pictureUrl;
+                       userImage.classList.remove('hidden');
+                    } else {
+                       liff.login();
+                    }
+                } catch (error) {
+                   console.error('LIFF initialization failed', error);
+                }
+            }
+
+            updateUI();
+            initializeLiff();
+            fetchMenuItems();
+        });
+    </script>
+</body>
+</html>
