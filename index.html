@@ -96,7 +96,7 @@
         </div>
     </div>
     <script>
-       document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => {
             const orderDetail = {
                 items: [],
                 totalAmount: 0,
@@ -271,6 +271,11 @@
             });
 
             payNowButton.addEventListener('click', () => {
+                // ตรวจสอบว่ามีรายการสั่งซื้อหรือไม่
+                if (orderDetail.items.length === 0) {
+                    Swal.fire('ไม่มีรายการสินค้า', 'กรุณาเลือกสินค้าก่อนดำเนินการชำระเงิน', 'warning');
+                    return;
+                }
                paymentModal.classList.remove('hidden');
             });
 
@@ -285,71 +290,107 @@
                 const group = document.getElementById('group').value;
                 const address = document.getElementById('address').value;
                 const slip = document.getElementById('slip').files[0];
-                const base64Image = await getBase64(slip);
+                let base64Image = '';
+                if (slip) {
+                    base64Image = await getBase64(slip);
+                } else {
+                    Swal.fire('แจ้งเตือน', 'กรุณาอัปโหลดสลิป', 'warning');
+                    $.LoadingOverlay("hide");
+                    return;
+                }
+                
                 const orderDetails = orderDetail.items.map(item => ({
-                   name: item.name,
-                   price: item.price,
-                   quantity: item.quantity
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity
                 }));
                 let lineUid = '';
-                try {
-                   const profile = await liff.getProfile();
-                   lineUid = profile.userId;
-                } catch (error) {
-                   console.error('Error fetching LINE profile:', error);
-                   alert('Error fetching LINE profile. Please try again.');
-                   $.LoadingOverlay("hide");
-                   return;
+
+                // ตรวจสอบว่า liff พร้อมใช้งานและผู้ใช้ล็อกอินหรือไม่
+                if (liff.isInClient() && liff.isLoggedIn()) {
+                    try {
+                        const profile = await liff.getProfile();
+                        lineUid = profile.userId;
+                    } catch (error) {
+                        console.error('Error fetching LINE profile:', error);
+                        Swal.fire('Error', 'ไม่สามารถดึงข้อมูล LINE โปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง', 'error');
+                        $.LoadingOverlay("hide");
+                        return;
+                    }
+                } else {
+                    // กรณีที่ไม่ได้อยู่ใน LINE Browser หรือไม่ได้ล็อกอิน
+                    console.warn('LIFF is not in client or not logged in. Sending without Line UID.');
+                    // คุณอาจต้องการแสดงข้อความเตือนผู้ใช้ หรือจัดการค่าเริ่มต้นสำหรับ lineUid
+                    // เช่น lineUid = 'unknown_user';
                 }
-               fetch(SERVER_URL, {
-                       method: 'POST',
-                       mode: 'no-cors',
-                       headers: {
-                           'Content-Type': 'application/json'
-                       },
-                       body: JSON.stringify({
-                           lineUid,
-                           name,
-                           group,
-                           address,
-                           image: base64Image,
-                           orderDetails
-                       })
+
+                fetch(SERVER_URL, {
+                        method: 'POST',
+                        mode: 'no-cors', // อาจจะต้องเปลี่ยนเป็น 'cors' ถ้ามีปัญหา CORS บน GAS
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            lineUid,
+                            name,
+                            group,
+                            address,
+                            image: base64Image,
+                            orderDetails
+                        })
                     })
-                   .then(() => {
-                       Swal.fire('Success', 'Payment submitted successfully!', 'success');
-                       paymentModal.classList.add('hidden');
-                       resetButton.click();
-                       $.LoadingOverlay("hide");
-                   })
-                   .catch(error => {
-                       Swal.fire('Error', error.toString(), 'error');
-                       $.LoadingOverlay("hide");
-                   });
+                    .then(() => {
+                        Swal.fire('สำเร็จ', 'ชำระเงินเรียบร้อยแล้ว!', 'success');
+                        paymentModal.classList.add('hidden');
+                        resetButton.click();
+                        $.LoadingOverlay("hide");
+                    })
+                    .catch(error => {
+                        Swal.fire('เกิดข้อผิดพลาด', error.toString(), 'error');
+                        $.LoadingOverlay("hide");
+                    });
             });
 
             function getBase64(file) {
                 return new Promise((resolve, reject) => {
-                   const reader = new FileReader();
-                   reader.onload = () => resolve(reader.result);
-                   reader.onerror = error => reject(error);
-                   reader.readAsDataURL(file);
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                    reader.readAsDataURL(file);
                 });
             }
 
             async function initializeLiff() {
                 try {
-                   await liff.init({ liffId: LIFF_ID });
-                    if (liff.isLoggedIn()) {
-                       const profile = await liff.getProfile();
-                       userNameInput.value = profile.displayName;
-                       userImage.src = profile.pictureUrl;
-                       userImage.classList.remove('hidden');
-                    } else {
-                       liff.login();
+                    await liff.init({ liffId: LIFF_ID });
+                    // ตรวจสอบว่าอยู่ใน LINE Browser หรือไม่
+                    if (!liff.isInClient()) {
+                        console.warn('LIFF is not running in LINE client. Profile data might not be available.');
+                        // แจ้งผู้ใช้ให้เปิดผ่าน LINE App หากต้องการดึงข้อมูล
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'กรุณาเปิดผ่าน LINE App',
+                            text: 'เพื่อการเข้าถึงฟังก์ชันทั้งหมด (เช่น ชื่อโปรไฟล์ของคุณ) กรุณาเปิดหน้านี้ผ่านแอปพลิเคชัน LINE',
+                            confirmButtonText: 'เข้าใจแล้ว'
+                        });
+                        return; // ไม่ต้องดำเนินการต่อในส่วนของ LIFF profile
                     }
+
+                    if (!liff.isLoggedIn()) {
+                        // หากยังไม่ได้ล็อกอิน ให้ทำการล็อกอิน
+                        liff.login();
+                        return; // รอให้ LIFF ล็อกอินเสร็จสิ้นแล้วค่อยโหลดข้อมูลโปรไฟล์
+                    }
+
+                    // ถ้า isLoggedIn() เป็น true แสดงว่าผู้ใช้ล็อกอินแล้ว ดึงโปรไฟล์ได้เลย
+                    const profile = await liff.getProfile();
+                    userNameInput.value = profile.displayName;
+                    userImage.src = profile.pictureUrl;
+                    userImage.classList.remove('hidden');
+
                 } catch (error) {
-                   console.error('LIFF initialization failed', error);
+                    console.error('LIFF initialization failed', error);
+                    Swal.fire('เกิดข้อผิดพลาด', 'LIFF ไม่สามารถเริ่มต้นได้: ' + error.message, 'error');
                 }
             }
 
