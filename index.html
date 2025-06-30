@@ -80,9 +80,10 @@
                </div>
                <div>
                    <label class="block text-sm font-medium">เลขบัญชีธนาคาร</label>
-                   <p>ชื่อธนาคาร: [ธนาคารกสิกรไทย]</p>
-                   <p>เลขบัญชี: [085-1-24228-7]</p>
-                   <p>ชื่อบัญชี: [ภาวิณี ธนกิจไพบูลย์]</p>
+                   <p>ชื่อธนาคาร: **กสิกรไทย**</p>
+                   <p>เลขบัญชี: **085-1-24228-7**</p>
+                   <p>ชื่อบัญชี: **ภาวิณี ธนกิจไพบูลย์**</p>
+                   <p class="text-lg font-bold mt-2">ยอดที่ต้องโอน: <span id="modal-total-amount" class="text-green-500">0฿</span></p>
                </div>
                <div>
                    <label for="slip" class="block text-sm font-medium">Upload Slip</label>
@@ -92,11 +93,11 @@
                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded cancel">Cancel</button>
                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Submit</button>
                </div>
-           </form>
+            </form>
         </div>
     </div>
     <script>
-       document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => {
             const orderDetail = {
                 items: [],
                 totalAmount: 0,
@@ -104,7 +105,7 @@
 
             const SERVER_URL = "https://script.google.com/macros/s/AKfycbxTlBMZZBKSJbckOh6w_O5iTTKUGZa1gkHTjH6t9NM6O7owN25b6PwN3_V8COXAJZt4/exec";
             const Product_List = "https://opensheet.elk.sh/1RoCc3GyfZnpeW0-bpl12awX8nSTvb3l2hyFJC3YdUqw/Product"
-            const LIFF_ID = "2007159627-PM1RD83a";
+            const LIFF_ID = "2007662218-NpA2ELmp";
             const totalItemsElement = document.querySelector('.text-xl');
             const totalAmountElement = document.querySelector('.total-amount');
             const orderItemsContainer = document.getElementById('order-items');
@@ -115,6 +116,8 @@
             const paymentForm = document.getElementById('payment-form');
             const userNameInput = document.getElementById('name');
             const userImage = document.getElementById('user-image');
+            const modalTotalAmountElement = document.getElementById('modal-total-amount');
+
 
             async function fetchMenuItems() {
                 const url = Product_List;
@@ -158,6 +161,7 @@
             function updateUI() {
                totalItemsElement.textContent = `Total Item (${orderDetail.items.length})`;
                totalAmountElement.textContent = `${orderDetail.totalAmount.toLocaleString()}฿`;
+               modalTotalAmountElement.textContent = `${orderDetail.totalAmount.toLocaleString()}฿`; // อัปเดตยอดรวมใน modal
             }
 
             function addItemToOrder(name, price, imageUrl, stock) {
@@ -172,7 +176,7 @@
                     }
                 } else {
                     if (stock > 0) { // ตรวจสอบสต็อกอีกครั้งก่อนเพิ่มสินค้าใหม่
-                       orderDetail.items.push({ name, price, quantity: 1, image: imageUrl, stock: stock });
+                        orderDetail.items.push({ name, price, quantity: 1, image: imageUrl, stock: stock });
                     } else {
                        Swal.fire('สินค้าหมด', `สินค้า ${name}ไม่มีในสต็อก`, 'warning');
                        return;
@@ -270,9 +274,34 @@
                updateUI();
             });
 
+            // --- ส่วนที่แก้ไข: เพิ่มฟังก์ชันสำหรับ Deep Link ของ KBank ---
+            function openKBankApp() {
+                if (orderDetail.totalAmount === 0) {
+                    Swal.fire('ไม่มีรายการ', 'กรุณาเลือกสินค้าก่อนทำการชำระเงิน', 'warning');
+                    return;
+                }
+
+                // ข้อมูลบัญชีสำหรับ KBank Deep Link
+                const bankAccountNum = '0851242287'; // เลขบัญชี
+                const bankCode = '004'; // KBank code (004 = KBank)
+                const amount = orderDetail.totalAmount; // ยอดเงินที่ต้องโอน
+
+                // สร้าง Deep Link URL สำหรับ KBank
+                const kbankDeeplink = `kbank://transfer?target=${bankAccountNum}&amount=${amount}&bankCode=${bankCode}`;
+
+                // พยายามเปิดแอป KBank
+                window.location.href = kbankDeeplink;
+
+                // หน่วงเวลาเล็กน้อยก่อนแสดง modal เผื่อผู้ใช้จะถูกนำไปยังแอปธนาคาร
+                setTimeout(() => {
+                    paymentModal.classList.remove('hidden');
+                }, 1000); // หน่วงเวลา 1 วินาที
+            }
+
             payNowButton.addEventListener('click', () => {
-               paymentModal.classList.remove('hidden');
+                openKBankApp(); // เรียกใช้ฟังก์ชันเพื่อเปิดแอป KBank
             });
+            // --- สิ้นสุดส่วนที่แก้ไข ---
 
             cancelButton.addEventListener('click', () => {
                paymentModal.classList.add('hidden');
@@ -287,9 +316,9 @@
                 const slip = document.getElementById('slip').files[0];
                 const base64Image = await getBase64(slip);
                 const orderDetails = orderDetail.items.map(item => ({
-                   name: item.name,
-                   price: item.price,
-                   quantity: item.quantity
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity
                 }));
                 let lineUid = '';
                 try {
@@ -302,30 +331,30 @@
                    return;
                 }
                fetch(SERVER_URL, {
-                       method: 'POST',
-                       mode: 'no-cors',
-                       headers: {
-                           'Content-Type': 'application/json'
-                       },
-                       body: JSON.stringify({
-                           lineUid,
-                           name,
-                           group,
-                           address,
-                           image: base64Image,
-                           orderDetails
-                       })
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            lineUid,
+                            name,
+                            group,
+                            address,
+                            image: base64Image,
+                            orderDetails
+                        })
                     })
-                   .then(() => {
-                       Swal.fire('Success', 'Payment submitted successfully!', 'success');
-                       paymentModal.classList.add('hidden');
-                       resetButton.click();
-                       $.LoadingOverlay("hide");
-                   })
-                   .catch(error => {
-                       Swal.fire('Error', error.toString(), 'error');
-                       $.LoadingOverlay("hide");
-                   });
+                    .then(() => {
+                        Swal.fire('Success', 'Payment submitted successfully!', 'success');
+                        paymentModal.classList.add('hidden');
+                        resetButton.click();
+                        $.LoadingOverlay("hide");
+                    })
+                    .catch(error => {
+                        Swal.fire('Error', error.toString(), 'error');
+                        $.LoadingOverlay("hide");
+                    });
             });
 
             function getBase64(file) {
